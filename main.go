@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -32,8 +34,21 @@ func main() {
 		}
 		fmt.Println("RESPONSE:")
 		fmt.Println(string(s))
+		for k, vs := range resp.Header {
+			w.Header().Set(k, strings.Join(vs, ""))
+		}
+		_, err = io.Copy(w, resp.Body)
+		if err != nil && err != io.EOF {
+			fmt.Println("failed to copy response from underlying ping to response:", err)
+			return
+		}
+		if err := resp.Body.Close(); err != nil {
+			fmt.Println("failed to copy response from underlying ping to response:", err)
+			return
+		}
 	})
-	if err := http.ListenAndServe("localhost:8000", nil); err != nil {
+	fmt.Println("using Ping URL:", url)
+	if err := http.ListenAndServe(":8000", nil); err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println("exiting...")
